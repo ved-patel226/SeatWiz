@@ -20,14 +20,23 @@ class StudentNode:
         return self.name
 
 class Classroom:
+    score_distance = 0
+    score_postive = 0
+    score_negative = 0
+    score_neutral = 0
+    
     def __init__(self, student_names, width, height, dbg=False, manual=False):
         self.students = {name: StudentNode(name) for name in student_names}
         self.width = width
         self.height = height
+    
+        
         self.scores = {
             "positive": -5,
             "negative": -10,
             "neutral": 5,
+            
+            "distance-factor": 0.1,
         }
         self.debug = dbg
         if not manual:
@@ -72,13 +81,15 @@ class Classroom:
     def calculate_happiness_score(self, arrangement):
         score = 0
         student_map = {student.name: student for student in self.students.values()}
+        Classroom.score_distance = 0
+        Classroom.score_postive = 0
+        Classroom.score_negative = 0
+        Classroom.score_neutral = 0
         
         for idx, student_name in enumerate(arrangement):
             student = student_map[student_name]
             row = idx // self.width
             col = idx % self.width
-
-            print(f"Student: {student} ({row}, {col})")
             
             if col > 0:
                 left_neighbor = arrangement[idx - 1]
@@ -92,15 +103,30 @@ class Classroom:
             if row > 0:
                 top_neighbor = arrangement[idx - self.width]
                 score += self.evaluate_relationship(student, top_neighbor)
-        
+
+            for person in student.enemies + student.friends:
+                person_idx = arrangement.index(person)
+                person_row, person_col = index_to_coordinates(person_idx, self.width)
+                distance = euclidean_distance((row, col), (person_row, person_col))
+                if person in student.friends:
+                    distance_score = distance * self.scores["distance-factor"] * -1 * self.scores["positive"]
+                else:
+                    distance_score = distance * self.scores["distance-factor"] * -1 *self.scores["negative"]
+                
+                Classroom.score_distance += distance_score
+                score += distance_score
+                
         return score
 
     def evaluate_relationship(self, student, neighbor):
         if neighbor in student.friends:
+            Classroom.score_postive += self.scores["positive"]
             return self.scores["positive"]
         elif neighbor in student.enemies:
+            Classroom.score_negative += self.scores["negative"]
             return self.scores["negative"]
         else:
+            Classroom.score_neutral += self.scores["neutral"]
             return self.scores["neutral"]
 
     def find_best_arrangement(self):
@@ -116,6 +142,12 @@ class Classroom:
             current_score = self.calculate_happiness_score(current_arrangement)
 
             if current_score > best_score:
+                
+                Classroom.best_negative = Classroom.score_negative
+                Classroom.best_positive = Classroom.score_postive
+                Classroom.best_neutral = Classroom.score_neutral
+                Classroom.best_distance = Classroom.score_distance
+                
                 best_score = current_score
                 best_arrangement = current_arrangement.copy()
 
@@ -133,11 +165,21 @@ class Classroom:
                     seating_index += 1
 
         print(f"Best Happiness Score: {best_score}")
+        print("Score Breakdown:")
+        print(f" - Positive: {Classroom.best_positive}")
+        print(f" - Negative: {Classroom.best_negative}")
+        print(f" - Neutral: {Classroom.best_neutral}")
+        print(f" - Distance: {Classroom.best_distance}")
+        
         print("Classroom Layout:")
         for row in classroom:
             print(row)
 
-student_names = [chr(i) for i in range(ord('A'), ord('A') + 9)]
-print(student_names)
-classroom = Classroom(student_names, width=3, height=3, dbg=True, manual=True)
-classroom.display_classroom()
+def main() -> None:
+    student_names = [chr(i) for i in range(ord('A'), ord('A') + 25)]
+    print(student_names)
+    classroom = Classroom(student_names, width=5, height=5, dbg=True)
+    classroom.display_classroom()
+
+if __name__ == '__main__':
+    main()
