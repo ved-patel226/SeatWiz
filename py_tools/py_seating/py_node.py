@@ -163,17 +163,18 @@ class Classroom:
                 if seating_index < len(best_arrangement):
                     classroom[i][j] = best_arrangement[seating_index]
                     seating_index += 1
-
-        print(f"Best Happiness Score: {best_score}")
-        print("Score Breakdown:")
-        print(f" - Positive: {Classroom.best_positive}")
-        print(f" - Negative: {Classroom.best_negative}")
-        print(f" - Neutral: {Classroom.best_neutral}")
-        print(f" - Distance: {Classroom.best_distance}")
-        
-        print("Classroom Layout:")
-        for row in classroom:
-            print(row)
+        if self.debug:
+            print(f"Best Happiness Score: {best_score}")
+            print("Score Breakdown:")
+            print(f" - Positive: {Classroom.best_positive}")
+            print(f" - Negative: {Classroom.best_negative}")
+            print(f" - Neutral: {Classroom.best_neutral}")
+            print(f" - Distance: {Classroom.best_distance}")
+            
+            print("Classroom Layout:")
+            for row in classroom:
+                print(row)
+        return classroom
 
 def main() -> None:
     student_names = [chr(i) for i in range(ord('A'), ord('A') + 25)]

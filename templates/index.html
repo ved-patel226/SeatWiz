@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<canvas id="myCanvas" width="800" height="600"></canvas>
+<script>
+    async function createDraggableGrid() {
+        const gridData = {{ seats|tojson }};
+
+        const canvas = document.getElementById('myCanvas');
+        const ctx = canvas.getContext('2d');
+        let offsetX, offsetY;
+        let dragIndex = null;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        const margin = 10;
+        const boxes = [];
+
+        async function initializeBoxes() {
+            boxes.length = 0;
+            const rows = gridData.length;
+            const cols = gridData[0].length;
+            const boxWidth = (canvas.width - (cols + 1) * margin) / cols / 3;
+            const boxHeight = (canvas.height - (rows + 1) * margin) / rows / 2;
+        
+            let makeSeats = {{ exist_seats }} == 0;
+        
+            const fetchPromises = [];
+        
+            gridData.forEach((row, rowIndex) => {
+                row.forEach((letter, colIndex) => {
+                    let x, y;
+        
+                    if (makeSeats) {
+                        x = colIndex * (boxWidth + margin) + margin;
+                        y = rowIndex * (boxHeight + margin) + margin;
+        
+                        boxes.push({ letter, x, y, width: boxWidth, height: boxHeight });
+        
+                        fetch('/update-loc', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ name: letter, x, y, update: false }),
+                        });
+                    } else {
+                        const fetchData = async () => {
+                            const response = await fetch('/check-loc', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ name: letter }),
+                            });
+        
+                            if (response.ok) {
+                                const result = await response.json();
+                                x = result['x'];
+                                y = result['y'];
+                                boxes.push({ letter, x, y, width: boxWidth, height: boxHeight });
+                            } else {
+                                console.error('Error fetching data for letter:', letter);
+                            }
+                        };
+        
+                        fetchPromises.push(fetchData());
+                    }
+                });
+            });
+        
+            await Promise.all(fetchPromises);
+            drawGrid();
+        }
+        
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            boxes.forEach(box => {
+                ctx.fillStyle = 'lightgray';
+                ctx.fillRect(box.x, box.y, box.width, box.height);
+                ctx.fillStyle = 'black';
+                ctx.font = `${Math.min(box.width, box.height) * 0.4}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(box.letter, box.x + box.width / 2, box.y + box.height / 2);
+            });
+        }
+
+        function isPointInBox(x, y, box) {
+            return x > box.x && x < box.x + box.width && y > box.y && y < box.y + box.height;
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+
+            boxes.forEach((box, index) => {
+                if (isPointInBox(mouseX, mouseY, box)) {
+                    dragIndex = index;
+                    offsetX = mouseX - box.x;
+                    offsetY = mouseY - box.y;
+                }
+            });
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (dragIndex !== null) {
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+                boxes[dragIndex].x = mouseX - offsetX;
+                boxes[dragIndex].y = mouseY - offsetY;
+                drawGrid();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            console.log(boxes[dragIndex]);
+        
+            fetch('/update-loc', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: boxes[dragIndex]['letter'],
+                    x: boxes[dragIndex]['x'],
+                    y: boxes[dragIndex]['y'],
+                    update: true
+                }),
+            });
+        
+            dragIndex = null;
+        });
+
+        resizeCanvas();
+        initializeBoxes();
+        drawGrid();
+    }
+
+    createDraggableGrid();
+
+</script>
+
+{% endblock %}
