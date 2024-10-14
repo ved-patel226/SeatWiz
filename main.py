@@ -4,6 +4,7 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 from flask import Flask, redirect, url_for, render_template, request, session, jsonify, abort
 from flask_dance.contrib.github import make_github_blueprint, github
 from termcolor import colored
+from faker import Faker
 
 from py_tools import *
 
@@ -14,10 +15,10 @@ github_blueprint = make_github_blueprint(client_id=env_to_var("GITHUB_CLIENT_ID"
 
 app.register_blueprint(github_blueprint, url_prefix="/login")
 
-cyan = lambda x: colored(x, "cyan")
-green = lambda x: colored(x, "green")
-red = lambda x: colored(x, "red")
-yellow = lambda x: colored(x, "yellow")
+cyan = lambda x: colored(x, "cyan", attrs=["bold"])
+green = lambda x: colored(x, "green", attrs=["bold"])
+red = lambda x: colored(x, "red", attrs=["bold"])
+yellow = lambda x: colored(x, "yellow", attrs=["bold"])
 
 @app.route("/")
 def index():
@@ -49,11 +50,12 @@ def index():
                 lst.append(temp_lst)
                 
             seats = lst
-
+            mongo.close()
             return render_template("index.html", seats=seats, exist_seats=1)
-
-    student_names = [chr(i) for i in range(ord('A'), ord('A') + 9)]
-    classroom = Classroom(student_names, width=3, height=3)
+    
+    fake = Faker()
+    student_names = [fake.name() for _ in range(25)]
+    classroom = Classroom(student_names, width=5, height=5, style=Style.NEUTRAL)
     seats = classroom.display_classroom()
     
     return render_template("index.html", seats=seats, exist_seats=0)
@@ -66,7 +68,7 @@ def update_loc():
     
     if data['update'] == False:        
         mongo = MongoDBHandler()
-        mongo.insert_one("seating", {"username": resp.json()['login'], "name": data['name'], "x": data['x'], "y": data['y']})
+        mongo.insert_one("seating", {"username": resp.json()['login'], "name": data['name'], "x": data['x'], "y": data['y'], "width": data['width'], "height": data['height']})
         
         mongo.close()
     else:       
@@ -82,12 +84,13 @@ def check_loc():
     user = resp.json()['login']
     data = request.get_json()
     
+    
     mongo = MongoDBHandler()
     seat = mongo.find_one("seating", {"username": user, "name": data['name']})
     mongo.close()
     
     
-    return jsonify({"x": seat['x'], "y": seat['y']}), 200
+    return jsonify({"x": seat['x'], "y": seat['y'], "width": seat['width'], 'height': seat['height']}), 200
 
 if __name__ == "__main__":
     app.run(debug=True)

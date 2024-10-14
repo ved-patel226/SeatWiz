@@ -1,5 +1,6 @@
 import itertools
 import random
+from enum import Enum
 
 try:
     from .py_distance import euclidean_distance, index_to_coordinates
@@ -19,25 +20,48 @@ class StudentNode:
     def __str__(self):
         return self.name
 
+class Style(Enum):
+    NEUTRAL = {
+        "positive": -5,
+        "negative": -10,
+        "neutral": 5,
+        "distance-factor": 0.1,
+    }
+    
+    PROMOTE_FRIENDS = {
+        "positive": 5,
+        "negative": -10,
+        "neutral": 0,
+        "distance-factor": 0.1,
+    }
+    
+    PROMOTE_DISTANCE = {
+        "positive": 5,
+        "negative": -10,
+        "neutral": 0,
+        "distance-factor": 1,
+    }
+
+    def __init__(self, values):
+        self.values = values
+
+    def get_values(self):
+        return self.values
+    
+    
 class Classroom:
     score_distance = 0
     score_postive = 0
     score_negative = 0
     score_neutral = 0
     
-    def __init__(self, student_names, width, height, dbg=False, manual=False):
+    def __init__(self, student_names, width, height, dbg=False, manual=False, style: Style = Style.NEUTRAL):
         self.students = {name: StudentNode(name) for name in student_names}
         self.width = width
         self.height = height
     
+        self.scores = style.get_values()
         
-        self.scores = {
-            "positive": -5,
-            "negative": -10,
-            "neutral": 5,
-            
-            "distance-factor": 0.1,
-        }
         self.debug = dbg
         if not manual:
             self.setup_relationships()
@@ -135,7 +159,7 @@ class Classroom:
         best_arrangement = current_arrangement
         best_score = self.calculate_happiness_score(current_arrangement)
 
-        for _ in range(100000):
+        for _ in range(10000):
             idx1, idx2 = random.sample(range(len(current_arrangement)), 2)
             current_arrangement[idx1], current_arrangement[idx2] = current_arrangement[idx2], current_arrangement[idx1]
 
