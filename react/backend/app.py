@@ -26,7 +26,6 @@ CORS(
     },
 )
 
-
 app.config["JWT_SECRET_KEY"] = "secretkey"
 app.config["JWT_TOKEN_LOCATION"] = ["cookies"]
 jwt = JWTManager(app)
