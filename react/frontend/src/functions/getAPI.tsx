@@ -15,15 +15,13 @@ const getAPI = async ({ url }: PropsAPI) => {
   }
 };
 
-const fetchAPI = (params: PropsAPI) => {
-  getAPI(params)
-    .then((data) => {
-      console.log(data);
-      return data;
-    })
-    .catch((error) => {
-      console.error("Error in fetchAPI:", error);
-    });
+const fetchAPI = async (params: PropsAPI) => {
+  try {
+    const data = await getAPI(params);
+    return data;
+  } catch (error) {
+    console.error("Error:", error);
+  }
 };
 
 export default fetchAPI;

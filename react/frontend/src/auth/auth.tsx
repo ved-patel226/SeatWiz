@@ -3,6 +3,8 @@ import GoogleIcon from "@mui/icons-material/Google";
 import IconButton from "@mui/material/IconButton";
 import { useGoogleLogin } from "@react-oauth/google";
 import UserAvatar from "./userAvatar";
+import App from "../App";
+import Cookies from "cookiejs"; // Import cookie management library
 
 interface CodeResponse {
   code: string;
@@ -47,15 +49,20 @@ export default function Auth() {
     onSuccess: async (codeResponse: CodeResponse) => {
       const loginDetails = await getUserInfo(codeResponse);
       setLoggedIn(true);
-      // console.log(loginDetails);
       setUser(loginDetails.user);
+
+      // Set user information in cookies
+      Cookies.set("user", JSON.stringify(loginDetails.user), { expires: 1 }); // expires in 1 day
     },
   });
 
   const handleLogout = () => {
-    getProtected();
+    getProtected(); // Optionally call a function to log out or invalidate the session on the server
     setLoggedIn(false);
     setUser(null);
+
+    // Remove user information from cookies
+    Cookies.remove("user");
   };
 
   return (
@@ -69,7 +76,7 @@ export default function Auth() {
           <GoogleIcon fontSize="large" />
         </IconButton>
       ) : (
-        <UserAvatar userName={user?.name} onClick={handleLogout} />
+        <App />
       )}
     </>
   );
