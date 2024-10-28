@@ -2,6 +2,7 @@
 
 {% block content %}
 <canvas id="myCanvas" width="800" height="600"></canvas>
+
 <script>
     async function createDraggableGrid() {
         const gridData = {{ seats|tojson }};
@@ -9,10 +10,12 @@
         const ctx = canvas.getContext('2d');
         let offsetX, offsetY;
         let dragIndex = null;
+
+        console.log(gridData);
     
         function resizeCanvas() {
-            canvas.width = 1000;
-            canvas.height = 1000;
+            canvas.width = 1500;
+            canvas.height = 800;
         }
     
         const margin = 10;
@@ -22,43 +25,45 @@
             boxes.length = 0;
             const rows = gridData.length;
             const cols = gridData[0].length;
-        
-            const defaultBoxWidth = (canvas.width - (cols + 1) * margin) / cols / 2; 
-            const defaultBoxHeight = (canvas.height - (rows + 1) * margin) / rows / 2; 
-        
+    
+            const defaultBoxWidth = (canvas.width - (cols + 1) * margin) / cols;
+            const defaultBoxHeight = (canvas.height - (rows + 1) * margin) / rows;
+    
             let makeSeats = {{ exist_seats }} == 0;
-        
+    
             const fetchPromises = [];
-        
+    
             gridData.forEach((row, rowIndex) => {
                 row.forEach((letter, colIndex) => {
                     let x, y, width, height;
-        
-                    x = colIndex * (defaultBoxWidth + margin) + margin;
-                    y = rowIndex * (defaultBoxHeight + margin) + margin;
-        
-                    ctx.font = 'bold 20px Arial';
-                    const textMetrics = ctx.measureText(letter);
-                    width = Math.max(defaultBoxWidth, textMetrics.width + margin * 2);
-                    height = Math.max(defaultBoxHeight, 30);
-        
-                    let overlap = true;
-                    let attempts = 0;
-                    const maxAttempts = 100;
-                    while (overlap && attempts < maxAttempts) {
-                        overlap = boxes.some(box => isOverlapping(x, y, width, height, box));
-                        if (overlap) {
-                            x += width + margin;
-                            if (x + width > canvas.width) {
-                                x = margin;
-                                y += height + margin;
+    
+                    if (makeSeats) {
+                        x = colIndex * (defaultBoxWidth + margin) + margin;
+                        y = rowIndex * (defaultBoxHeight + margin) + margin;
+    
+                        ctx.font = 'bold 20px Arial';
+                        const textMetrics = ctx.measureText(letter);
+                        width = Math.max(defaultBoxWidth, textMetrics.width + margin * 2);
+                        height = Math.max(defaultBoxHeight, 40);
+                        
+                        let overlap = true;
+                        let attempts = 0;
+                        const maxAttempts = 100;
+
+                        while (overlap && attempts < maxAttempts) {
+                            overlap = boxes.some(box => isOverlapping(x, y, width, height, box));
+                            if (overlap) {
+                                x += width + margin;
+                                if (x + width > canvas.width) {
+                                    x = margin;
+                                    y += height + margin;
+                                }
                             }
+                            attempts++;
                         }
-                        attempts++;
-                    }
-        
-                    if (attempts < maxAttempts) {
+
                         boxes.push({ letter, x, y, width, height });
+    
                         fetch('/update-loc', {
                             method: 'POST',
                             headers: {
@@ -66,14 +71,36 @@
                             },
                             body: JSON.stringify({ name: letter, x, y, width, height, update: false }),
                         });
+                    } else {
+                        const fetchData = async () => {
+                            const response = await fetch('/check-loc', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ name: letter }),
+                            });
+                            if (response.ok) {
+                                const result = await response.json();
+                                x = result['x'];
+                                y = result['y'];
+                                width = result['width'];
+                                height = result['height'];
+                                boxes.push({ letter, x, y, width, height });
+                            } else {
+                                console.error('Error fetching data for letter:', letter);
+                            }
+                        };
+    
+                        fetchPromises.push(fetchData());
                     }
                 });
             });
-        
+    
             await Promise.all(fetchPromises);
             drawGrid();
         }
-        
+
         function isOverlapping(x1, y1, w1, h1, box) {
             return !(
                 x1 + w1 < box.x ||
@@ -82,20 +109,30 @@
                 y1 > box.y + box.height
             );
         }
-        
     
         function drawGrid() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // const seatStyle = getComputedStyle(document.querySelector('.seat'));
+            // const letterStyle = getComputedStyle(document.querySelector('.seat .letter'));
+        
+            const boxColor = "#ccc";
+            
+            const textColor = "#000";
+            const fontSize = "16px";
+        
             boxes.forEach(box => {
-                ctx.fillStyle = 'lightgray';
+                ctx.fillStyle = boxColor;
                 ctx.fillRect(box.x, box.y, box.width, box.height);
-                ctx.fillStyle = 'black';
-                ctx.font = 'bold 20px Arial';
+                
+                ctx.fillStyle = textColor;
+                ctx.font = `${fontSize} Arial`;
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(box.letter, box.x + box.width / 2, box.y + box.height / 2);
             });
         }
+        
     
 
         function isPointInBox(x, y, box) {
