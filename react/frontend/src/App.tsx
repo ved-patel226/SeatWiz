@@ -6,6 +6,7 @@ import { get } from "http";
 import fetchAPI from "./functions/getAPI";
 import Cookies from "cookiejs";
 import NavBar from "./components/navBar";
+import PlaceHolder from "./components/placeHolder";
 
 function App() {
   const [auth, setAuth] = React.useState(false);

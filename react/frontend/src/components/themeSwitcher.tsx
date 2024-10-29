@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 
 const ThemeSwitcher = () => {
-  const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "ocean");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -9,7 +9,7 @@ const ThemeSwitcher = () => {
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((prevTheme) => (prevTheme === "light" ? "dark" : "light"));
+    setTheme((prevTheme) => (prevTheme === "ocean" ? "nature" : "ocean"));
   };
 
   return (
@@ -18,7 +18,7 @@ const ThemeSwitcher = () => {
         <input
           type="checkbox"
           className="theme-controller"
-          checked={theme === "dark"}
+          checked={theme === "nature"}
           readOnly
         />
 

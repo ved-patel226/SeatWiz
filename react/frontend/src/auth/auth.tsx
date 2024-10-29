@@ -92,10 +92,10 @@ export default function Auth() {
         <IconButton
           sx={{
             backgroundColor: "none",
-            color: "#a6adbb",
+            color: "black",
             "&:hover": {
-              backgroundColor: "#383f47",
-              color: "#a6adbb",
+              backgroundColor: "rgba(0, 0, 0, 0.2)",
+              color: "black",
             },
           }}
           className="w-12 h-12"
