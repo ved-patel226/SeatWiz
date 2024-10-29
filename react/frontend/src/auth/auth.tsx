@@ -1,10 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import GoogleIcon from "@mui/icons-material/Google";
 import IconButton from "@mui/material/IconButton";
 import { useGoogleLogin } from "@react-oauth/google";
-import UserAvatar from "./userAvatar";
-import App from "../App";
-import Cookies from "cookiejs"; // Import cookie management library
+import Cookies from "cookiejs";
 
 interface CodeResponse {
   code: string;
@@ -12,6 +10,12 @@ interface CodeResponse {
 
 interface User {
   name: string;
+  email: string;
+  email_verified: boolean;
+  family_name: string;
+  given_name: string;
+  picture: string;
+  sub: string;
 }
 
 async function getUserInfo(
@@ -35,48 +39,79 @@ async function getProtected(): Promise<void> {
     headers: {
       "Content-Type": "application/json",
     },
-  })
-    .then((res) => res.json())
-    .then((msg) => console.log(msg));
+  });
 }
 
 export default function Auth() {
   const [loggedIn, setLoggedIn] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
 
+  useEffect(() => {
+    const userCookie = Cookies.get("user");
+    console.log("Checking for user cookie on reload:", userCookie);
+    if (userCookie) {
+      try {
+        const parsedUser: User = JSON.parse(userCookie);
+        setUser(parsedUser);
+        setLoggedIn(true);
+      } catch (error) {
+        console.error("Failed to parse user cookie:", error);
+      }
+    }
+  }, []);
+
   const googleLogin = useGoogleLogin({
     flow: "auth-code",
     onSuccess: async (codeResponse: CodeResponse) => {
+      console.log("Attempting to log in...");
       const loginDetails = await getUserInfo(codeResponse);
-      setLoggedIn(true);
-      setUser(loginDetails.user);
+      console.log("Received login details:", loginDetails);
 
-      // Set user information in cookies
-      Cookies.set("user", JSON.stringify(loginDetails.user), { expires: 1 }); // expires in 1 day
+      if (loginDetails && loginDetails.user) {
+        setLoggedIn(true);
+        setUser(loginDetails.user);
+        Cookies.set("user", JSON.stringify(loginDetails.user), { expires: 1 });
+        console.log("User set in state:", loginDetails.user);
+      } else {
+        console.error("Login details not valid");
+      }
     },
   });
 
   const handleLogout = () => {
-    getProtected(); // Optionally call a function to log out or invalidate the session on the server
+    getProtected();
     setLoggedIn(false);
     setUser(null);
-
-    // Remove user information from cookies
     Cookies.remove("user");
+    console.log("User cookie removed");
   };
 
   return (
     <>
       {!loggedIn ? (
         <IconButton
-          color="primary"
+          sx={{
+            backgroundColor: "none",
+            color: "#a6adbb",
+            "&:hover": {
+              backgroundColor: "#383f47",
+              color: "#a6adbb",
+            },
+          }}
+          className="w-12 h-12"
           aria-label="holup"
           onClick={() => googleLogin()}
         >
-          <GoogleIcon fontSize="large" />
+          <GoogleIcon fontSize="medium" className="" />
         </IconButton>
       ) : (
-        <App />
+        <button className="btn btn-ghost btn-circle" onClick={handleLogout}>
+          <img
+            className="w-7 rounded-3xl cursor-pointer"
+            src={user?.picture}
+            alt=""
+          />
+        </button>
       )}
     </>
   );

@@ -1,6 +1,10 @@
 import ThemeSwitcher from "./themeSwitcher";
 
-function NavBar() {
+interface NavBarProps {
+  children: React.ReactNode;
+}
+
+function NavBar({ children }: NavBarProps) {
   return (
     <div className="navbar bg-base-100">
       <div className="navbar-start">
@@ -40,8 +44,9 @@ function NavBar() {
       <div className="navbar-center">
         <a className="btn btn-ghost text-xl">vedPatel</a>
       </div>
-      <div className="navbar-end">
+      <div className="navbar-end flex gap-4">
         <ThemeSwitcher />
+        {children}
       </div>
     </div>
   );
